@@ -258,3 +258,35 @@ Analcolica (soft drink)
 ],
 "allergens": []
 }
+
+"store": [
+    {
+        "id": "r_1",
+        "userId": "u_1",
+        "name": "Trattoria da Mario",
+        "type": "può essere ristorante, bar, enoteca, ecc.",
+        "imagelink": "https://.../logo_trattoria_da_mario.png",
+        "description": {
+            "it": "Cucina tradizionale romana",
+            "en": "Traditional Roman cuisine"
+        },
+        "about": {
+            "it": "Fondata nel 1950...",
+            "en": "Founded in 1950..."
+        },
+        "contact": {
+            "phone": "+39 06 1234567",
+            "email": "info@trattoriadamario.com"
+        },
+        "social": {
+            "instagram": "trattoriadamario",
+            "facebook": "trattoriadamario"
+        },
+        "address": {
+            "street": "Via Roma, 10",
+            "city": "Roma",
+            "postalCode": "00100",
+            "country": "Italy"
+        },
+    }
+]
