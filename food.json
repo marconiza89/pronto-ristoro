@@ -1,0 +1,152 @@
+{
+    "id": "item_123",
+    "userId": "u_1",
+    "itemType": "food",
+    "name": {
+        "it": "Spaghetti alla Carbonara",
+        "en": "Spaghetti Carbonara"
+    },
+    "description?": {
+        "it": "Ricetta classica romana",
+        "en": "Classic Roman recipe"
+    },
+    "story?": {
+        "it": "Origini nel Lazio...",
+        "en": "Originated in Lazio..."
+    },
+    "price": {
+        "amount": 12.50,
+        "currency": "EUR"
+    },
+    "ingredients": [
+        {
+            "name": "Spaghetti"
+        },
+        {
+            "name": "Guanciale"
+        },
+        {
+            "name": "Uova"
+        },
+        {
+            "name": "Pecorino Romano"
+        },
+        {
+            "name": "Pepe nero"
+        }
+    ],
+    "allergens": [
+        "eggs",
+        "milk",
+        "gluten_cereals"
+    ],
+    "dietTags": [],
+    "food": {
+        "course": "primo",
+        "prepTimeMin?": 15
+    },
+    "availability": {
+        "sessions": [
+            "pranzo",
+            "cena"
+        ]
+    },
+    "images": [
+        {
+            "url": "https://.../carbonara.jpg",
+            "isPrimary": true
+        }
+    ],
+    "winePairings": [
+        {
+            "itemId": "item_456",
+            "serving": "glass",
+            "note": {
+                "it": "Calice consigliato",
+                "en": "Recommended by the glass"
+            },
+            "priority": 1
+        },
+        {
+            "itemId": "item_789",
+            "serving": "bottle",
+            "note": {
+                "it": "Bottiglia per due",
+                "en": "Bottle for sharing"
+            },
+            "priority": 2
+        }
+    ]
+},
+{
+    "id": "item_456",
+    "userId": "u_1",
+    "itemType": "wine",
+    "name": {
+        "it": "Barolo DOCG",
+      
+    },
+    "description": {
+        "it": "Rosso strutturato delle Langhe",
+        "en": "Full-bodied red from Langhe"
+    },
+    "wine": {
+        "color": "red",
+        "vintage": 2019,
+        "producer": "Cantina XYZ",
+        "country": "Italy",
+        "region": "Piemonte",
+        "appellation": "Barolo",
+        "grapeVarieties": [
+            {
+                "name": "Nebbiolo",
+                "percent": 100
+            }
+        ],
+        "alcoholPercent": 14.0,
+    "servingTempC?": 18,
+        "pairingSuggestions": [
+            "brasati",
+            "formaggi stagionati"
+        ],
+        "foodPairing":
+        {
+            "itemId": "item_456",
+            
+            "note": {
+                "it": "Piatto consigliato",
+                "en": "Recommended dish"
+            },
+            "priority": 1
+        },
+    },
+    "offerings": [
+        {
+            "key": "glass",
+            "label": {
+                "it": "Calice"
+            },
+            "volumeMl": 150,
+            "price": {
+                "amount": 900,
+                "currency": "EUR"
+            },
+            "available": false
+        },
+        {
+            "key": "bottle_750",
+            "label": {
+                "it": "Bottiglia 750ml"
+            },
+            "volumeMl": 750,
+            "price": {
+                "amount": 4800,
+                "currency": "EUR"
+            },
+            "available": true
+        }
+    ],
+    "allergens": [
+        "sulphites"
+    ]
+}

@@ -1,0 +1,260 @@
+Item food
+{
+"id": "item_123",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "food",
+"name": "Spaghetti alla Carbonara",
+"description": { "it": "Ricetta classica romana", "en": "Classic Roman recipe" },
+"story": { "it": "Origini nel Lazio...", "en": "Originated in Lazio..." },
+"price": { "amount": 12.5, "currency": "EUR" },
+"ingredients": [
+{ "name": "Spaghetti" },
+{ "name": "Guanciale" },
+{ "name": "Uova" },
+{ "name": "Pecorino Romano" },
+{ "name": "Pepe nero" }
+],
+"allergens": ["eggs", "milk", "gluten_cereals"],
+"dietTags": [],
+"food": { "course": "primo", "prepTimeMin": 15 },
+"availability": { "sessions": ["pranzo", "cena"] },
+"images": [
+{ "url": "https://.../carbonara.jpg", "isPrimary": true }
+],
+"winePairings": [
+{
+"itemId": "item_456",
+"offeringKey": "glass",
+"note": { "it": "Calice consigliato", "en": "Recommended by the glass" },
+"priority": 1
+},
+{
+"itemId": "item_456",
+"offeringKey": "bottle_750",
+"note": { "it": "Bottiglia per due", "en": "Bottle for sharing" },
+"priority": 2
+}
+]
+}
+
+Item wine
+{
+"id": "item_456",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "wine",
+"name": "Barolo DOCG",
+"description": { "it": "Rosso strutturato delle Langhe", "en": "Full-bodied red from Langhe" },
+"wine": {
+"color": "red",
+"vintage": 2019,
+"producer": "Cantina XYZ",
+"country": "Italy",
+"region": "Piemonte",
+"appellation": "Barolo",
+"grapeVarieties": [{ "name": "Nebbiolo", "percent": 100 }],
+"alcoholPercent": 14.0,
+"servingTempC": 18,
+"pairingSuggestions": ["brasati", "formaggi stagionati"]
+},
+"offerings": [
+{
+"key": "glass",
+"label": { "it": "Calice", "en": "Glass" },
+"volumeMl": 150,
+"price": { "amount": 9.0, "currency": "EUR" },
+"available": false
+},
+{
+"key": "bottle_750",
+"label": { "it": "Bottiglia 750ml", "en": "Bottle 750ml" },
+"volumeMl": 750,
+"price": { "amount": 48.0, "currency": "EUR" },
+"available": true
+}
+],
+"allergens": ["sulphites"]
+}
+
+Birra artigianale alla spina
+{
+"id": "beer_draft_ipa_001",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "drink",
+"name": "IPA Artigianale alla Spina",
+"description": { "it": "IPA agrumata e resinosa", "en": "Citrusy, resinous IPA" },
+"drink": {
+"category": "beer",
+"serviceType": "draft",
+"productionType": "craft",
+"style": "IPA",
+"producer": "Birrificio XYZ",
+"originCountry": "Italy",
+"alcoholPercent": 6.2,
+"bitternessIbu": 55,
+"servingGlassware": "Pinta",
+"servingTempC": 6
+},
+"offerings": [
+{
+"key": "small_300",
+"label": { "it": "Piccola 0,3L", "en": "Small 0.3L" },
+"volumeMl": 300,
+"price": { "amount": 4.5, "currency": "EUR" },
+"available": true
+},
+{
+"key": "pint_500",
+"label": { "it": "Pinta 0,5L", "en": "Pint 0.5L" },
+"volumeMl": 500,
+"price": { "amount": 6.5, "currency": "EUR" },
+"available": true
+}
+],
+"allergens": ["gluten_cereals"]
+}
+
+Birra in bottiglia artigianale
+{
+"id": "beer_bottle_pils_330",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "drink",
+"name": "Pils Artigianale 33cl",
+"description": { "it": "Pils fresca e secca", "en": "Crisp, dry Pils" },
+"drink": {
+"category": "beer",
+"serviceType": "bottle",
+"productionType": "craft",
+"style": "Pils",
+"producer": "Birrificio ABC",
+"originCountry": "Italy",
+"alcoholPercent": 5.0,
+"servingTempC": 5
+},
+"offerings": [
+{
+"key": "bottle_330",
+"label": { "it": "Bottiglia 330ml", "en": "Bottle 330ml" },
+"volumeMl": 330,
+"price": { "amount": 5.0, "currency": "EUR" },
+"available": true
+}
+],
+"allergens": ["gluten_cereals"]
+}
+
+Birra industriale in lattina
+{
+"id": "beer_can_lager_330",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "drink",
+"name": "Lager 33cl Lattina",
+"description": { "it": "Lager equilibrata", "en": "Balanced lager" },
+"drink": {
+"category": "beer",
+"serviceType": "can",
+"productionType": "industrial",
+"style": "Lager",
+"producer": "Brand Globale",
+"originCountry": "Netherlands",
+"alcoholPercent": 5.0,
+"servingTempC": 4
+},
+"offerings": [
+{
+"key": "can_330",
+"label": { "it": "Lattina 330ml", "en": "Can 330ml" },
+"volumeMl": 330,
+"price": { "amount": 3.0, "currency": "EUR" },
+"available": true
+}
+],
+"allergens": ["gluten_cereals"]
+}
+
+Amaro (liqueur)
+{
+"id": "item_amaro_001",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "drink",
+"name": "Amaro Montenegro",
+"description": { "it": "Classico digestivo italiano", "en": "Classic Italian digestif" },
+"drink": {
+"category": "liqueur",
+"producer": "Montenegro S.r.l.",
+"originCountry": "Italy",
+"alcoholPercent": 23.0,
+"sweetnessLevel": 3,
+"servingGlassware": "Tumbler",
+"servingTempC": 8,
+"tastingNotes": { "it": "Erbaceo, agrumato, dolce-amaro" }
+},
+"offerings": [
+{
+"key": "shot_30",
+"label": { "it": "Shot 3cl", "en": "Shot 3cl" },
+"volumeMl": 30,
+"price": { "amount": 3.5, "currency": "EUR" },
+"available": true,
+"container": "shot"
+},
+{
+"key": "double_60",
+"label": { "it": "Doppio 6cl", "en": "Double 6cl" },
+"volumeMl": 60,
+"price": { "amount": 6.0, "currency": "EUR" },
+"available": true,
+"container": "shot"
+}
+],
+"allergens": []
+}
+
+Analcolica (soft drink)
+{
+"id": "item_soft_001",
+"userId": "u_1",
+"restaurantId": "r_1",
+"menuId": "m_1",
+"itemType": "drink",
+"name": "Coca-Cola",
+"description": { "it": "Bevanda analcolica", "en": "Soft drink" },
+"drink": {
+"category": "soft",
+"producer": "Coca-Cola",
+"originCountry": "Italy",
+"isCaffeinated": true,
+"isCarbonated": true,
+"servingTempC": 4
+},
+"offerings": [
+{
+"key": "can_330",
+"label": { "it": "Lattina 330ml", "en": "Can 330ml" },
+"volumeMl": 330,
+"price": { "amount": 2.5, "currency": "EUR" },
+"available": true,
+"container": "can"
+},
+{
+"key": "bottle_500",
+"label": { "it": "Bottiglia 500ml", "en": "Bottle 500ml" },
+"volumeMl": 500,
+"price": { "amount": 3.0, "currency": "EUR" },
+"available": true,
+"container": "bottle"
+}
+],
+"allergens": []
+}
