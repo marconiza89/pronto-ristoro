@@ -4,10 +4,9 @@ import { redirect } from 'next/navigation'
 import LogoutButton from './LogoutButton'
 
 export default async function DashboardPage() {
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+const supabase = createClient()
   
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await (await supabase).auth.getUser()
   
   if (!user) {
     redirect('/login')
