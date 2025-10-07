@@ -54,7 +54,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex font-roboto items-center justify-center text-mainblue">
         <div className="max-w-md w-full space-y-8">
           <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
             <p className="text-sm text-green-800 dark:text-green-400">
@@ -64,7 +64,7 @@ export default function SignupPage() {
           <div className="text-center">
             <Link 
               href="/login" 
-              className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="font-medium text-mainblue-light hover:text-mainblue"
             >
               Torna al login
             </Link>
@@ -75,24 +75,24 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex font-roboto items-center justify-center text-mainblue">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+          <h2 className="mt-6 text-center text-3xl font-extrabold">
             Crea un nuovo account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Oppure{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+            <Link href="/login" className="font-medium text-mainblue-light hover:text-mainblue">
               accedi se hai già un account
             </Link>
           </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-          <div className="space-y-4">
+          <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="email" className="sr-only">
                 Email
               </label>
               <input
@@ -103,13 +103,12 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                placeholder="nome@esempio.com"
+                className="appearance-none rounded-none relative block w-full text-mainblue px-3 py-2 border border-gray-300 placeholder-mainblue rounded-t-md focus:outline-none focus:ring-mainblue focus:border-mainblue-light focus:z-10 sm:text-sm"
+                placeholder="Indirizzo email"
               />
             </div>
-            
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="password" className="sr-only">
                 Password
               </label>
               <input
@@ -120,13 +119,12 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                placeholder="Minimo 6 caratteri"
+                className="appearance-none rounded-none relative block w-full text-mainblue px-3 py-2 border border-gray-300 placeholder-mainblue focus:outline-none focus:ring-mainblue focus:border-mainblue-light focus:z-10 sm:text-sm"
+                placeholder="Password (minimo 6 caratteri)"
               />
             </div>
-            
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="confirm-password" className="sr-only">
                 Conferma Password
               </label>
               <input
@@ -137,8 +135,8 @@ export default function SignupPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                placeholder="Ripeti la password"
+                className="appearance-none rounded-none relative block w-full text-mainblue px-3 py-2 border border-gray-300 placeholder-mainblue rounded-b-md focus:outline-none focus:ring-mainblue focus:border-mainblue-light focus:z-10 sm:text-sm"
+                placeholder="Conferma password"
               />
             </div>
           </div>
@@ -153,7 +151,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border bg-mainblue text-mainwhite font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Registrazione in corso...' : 'Registrati'}
             </button>
