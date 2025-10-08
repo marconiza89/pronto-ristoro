@@ -52,7 +52,8 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [uploadingImage, setUploadingImage] = useState(false)
-    const [activeTab, setActiveTab] = useState<'base' | 'content' | 'social'>('base')
+    const [activeTab, setActiveTab] = useState<'base' | 'content' | 'social' | 'menu'>('base')
+    const [restaurantMenus, setRestaurantMenus] = useState<any[]>([])
 
     // Dati ristorante
     const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
@@ -140,6 +141,29 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
             if (socialsData) {
                 setSocials(socialsData)
             }
+
+            // Load menus
+            const { data: menusData } = await supabase
+                .from('restaurant_menus')
+                .select(`
+                         *,
+                         menus (
+                         id,
+                         name,
+                          description,
+                        is_active
+                )`)
+                .eq('restaurant_id', id)
+
+            if (menusData) {
+                const formattedMenus = menusData.map(rm => ({
+                    ...rm.menus,
+                    is_primary: rm.is_primary,
+                    display_order: rm.display_order,
+                })).filter(Boolean)
+                setRestaurantMenus(formattedMenus)
+            }
+
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -373,7 +397,7 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
     }
 
     return (
-        <div className="min-h-screen font-roboto text-mainblue bg-gray-50">
+        <div className="min-h-screen font-roboto text-mainblue ">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
                 <div className="mb-6">
@@ -409,8 +433,8 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
                         <button
                             onClick={() => setActiveTab('base')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'base'
-                                    ? 'border-mainblue text-mainblue'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-mainblue text-mainblue'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Informazioni Base
@@ -418,8 +442,8 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
                         <button
                             onClick={() => setActiveTab('content')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'content'
-                                    ? 'border-mainblue text-mainblue'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-mainblue text-mainblue'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
                             Contenuti e Traduzioni
@@ -427,11 +451,20 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
                         <button
                             onClick={() => setActiveTab('social')}
                             className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'social'
+                                ? 'border-mainblue text-mainblue'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                        >
+                            Social Media
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('menu')}
+                            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'menu'
                                     ? 'border-mainblue text-mainblue'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Social Media
+                            Menu
                         </button>
                     </nav>
                 </div>
@@ -726,21 +759,125 @@ export default function EditRestaurantPage({ params }: { params: Promise<{ id: s
                 </div>
 
                 {/* Link al menu */}
-                <div className="mt-8 bg-mainblue/5 border border-mainblue/20 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-mainblue mb-2">Prossimo passo: Il Menu</h3>
-                    <p className="text-sm text-gray-700 mb-4">
-                        Dopo aver completato le informazioni del ristorante, potrai gestire il menu digitale completo.
-                    </p>
-                    <Link
-                        href={`/dashboard/restaurants/${id}/menu`}
-                        className="inline-flex items-center px-4 py-2 bg-mainblue text-white rounded-md hover:bg-mainblue-light"
-                    >
-                        Gestisci Menu
-                        <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </Link>
-                </div>
+                {/* TAB: Menu */}
+                {activeTab === 'menu' && (
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-semibold text-mainblue mb-4">Menu Digitali</h2>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                            <p className="text-sm text-blue-800">
+                                <strong>Gestione Menu:</strong> Crea e gestisci i menu digitali per questo ristorante.
+                                Puoi avere più menu (es. Menu pranzo, Menu cena, Menu stagionale) e condividerli tra più ristoranti.
+                            </p>
+                        </div>
+
+                        {/* Lista Menu */}
+                        {restaurantMenus.length === 0 ? (
+                            <div className="text-center py-12">
+                                <svg
+                                    className="mx-auto h-24 w-24 text-gray-400 mb-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                </svg>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    Nessun menu presente
+                                </h3>
+                                <p className="text-gray-500 mb-6">
+                                    Crea il tuo primo menu digitale per iniziare
+                                </p>
+                                <Link
+                                    href={`/dashboard/restaurants/${id}/menu/new`}
+                                    className="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-mainblue rounded-md hover:bg-mainblue-light"
+                                >
+                                    <svg
+                                        className="mr-2 h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 4v16m8-8H4"
+                                        />
+                                    </svg>
+                                    Crea primo menu
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {restaurantMenus.map((menu) => (
+                                    <div
+                                        key={menu.id}
+                                        className="flex items-center justify-between p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-2">
+                                                <h3 className="font-semibold text-mainblue">{menu.name}</h3>
+                                                {menu.is_primary && (
+                                                    <span className="px-2 py-0.5 text-xs font-medium bg-mainblue/10 text-mainblue rounded-full">
+                                                        Principale
+                                                    </span>
+                                                )}
+                                                {!menu.is_active && (
+                                                    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                                                        Non attivo
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {menu.description && (
+                                                <p className="text-sm text-gray-500 mt-1">{menu.description}</p>
+                                            )}
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {menu.sections_count || 0} sezioni
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 ml-4">
+                                            <Link
+                                                href={`/dashboard/restaurants/${id}/menu/${menu.id}`}
+                                                className="px-3 py-1 text-sm font-medium text-mainblue border border-mainblue rounded-md hover:bg-mainblue/5"
+                                            >
+                                                Gestisci
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <div className="pt-4 border-t">
+                                    <Link
+                                        href={`/dashboard/restaurants/${id}/menu/new`}
+                                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-mainblue border border-mainblue rounded-md hover:bg-mainblue/5"
+                                    >
+                                        <svg
+                                            className="mr-2 h-4 w-4"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M12 4v16m8-8H4"
+                                            />
+                                        </svg>
+                                        Aggiungi nuovo menu
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )

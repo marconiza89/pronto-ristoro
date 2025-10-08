@@ -1,0 +1,498 @@
+-- =====================================================
+-- SCHEMA MENU ITEMS per Pronto Ristoro
+-- Sistema flessibile per gestire diversi tipi di prodotti
+-- =====================================================
+
+-- DROP existing views first
+DROP VIEW IF EXISTS menu_items_with_translations CASCADE;
+
+-- DROP existing tables and types if they exist (per riesecuzione script)
+DROP TABLE IF EXISTS item_allergen_translations CASCADE;
+DROP TABLE IF EXISTS item_allergens CASCADE;
+DROP TABLE IF EXISTS dietary_tag_translations CASCADE;
+DROP TABLE IF EXISTS item_dietary_tags CASCADE;
+DROP TABLE IF EXISTS item_ingredient_translations CASCADE;
+DROP TABLE IF EXISTS item_ingredients CASCADE;
+DROP TABLE IF EXISTS menu_item_translations CASCADE;
+DROP TABLE IF EXISTS menu_items CASCADE;
+
+
+DROP TYPE IF EXISTS item_type CASCADE;
+DROP TYPE IF EXISTS serving_format CASCADE;
+DROP TYPE IF EXISTS wine_type CASCADE;
+DROP TYPE IF EXISTS wine_characteristics CASCADE;
+DROP TYPE IF EXISTS beer_style CASCADE;
+
+-- ENUM per tipi di item
+CREATE TYPE item_type AS ENUM ('food', 'drink', 'wine', 'beer', 'cocktail', 'dessert', 'other');
+
+-- ENUM per formati di servizio (vini e birre)
+CREATE TYPE serving_format AS ENUM ('glass', 'bottle', 'draft', 'can');
+
+-- ENUM per tipi di vino
+CREATE TYPE wine_type AS ENUM ('red', 'white', 'rose', 'sparkling', 'champagne', 'dessert_wine', 'fortified');
+
+-- ENUM per caratteristiche vino
+CREATE TYPE wine_characteristics AS ENUM ('dry', 'semi_dry', 'sweet', 'semi_sweet', 'still', 'sparkling', 'frizzante');
+
+-- ENUM per stile birra
+CREATE TYPE beer_style AS ENUM ('lager', 'ale', 'ipa', 'stout', 'pilsner', 'wheat', 'sour', 'porter', 'amber', 'other');
+
+-- 1. MENU_ITEMS - Piatti/Prodotti del menu
+CREATE TABLE menu_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  section_id UUID NOT NULL REFERENCES menu_sections(id) ON DELETE CASCADE,
+  
+  -- Info Base
+  item_type item_type DEFAULT 'food',
+  name VARCHAR(255) NOT NULL,
+  description TEXT, -- Bio/descrizione breve in italiano
+  
+  -- Prezzo
+  price DECIMAL(10, 2),
+  currency VARCHAR(3) DEFAULT 'EUR',
+  
+  -- Media
+  image_url TEXT,
+  
+  -- Ordinamento e visibilità
+  display_order INTEGER DEFAULT 0,
+  is_available BOOLEAN DEFAULT true,
+  is_featured BOOLEAN DEFAULT false, -- Piatto/Prodotto del giorno
+  
+  -- Informazioni nutrizionali/preparazione (opzionali)
+  preparation_time INTEGER, -- minuti
+  calories INTEGER, -- kcal
+  weight DECIMAL(8, 2), -- grammi/ml
+  
+  -- Campi specifici per ALCOLICI (vini, birre, cocktail)
+  alcohol_content DECIMAL(4, 2), -- Gradazione alcolica (es: 13.5, 5.0)
+  serving_format serving_format, -- glass/bottle/draft/can
+  volume_ml INTEGER, -- Volume in ml (es: 330, 750, 150)
+  
+  -- Campi specifici per VINI
+  wine_type wine_type, -- red/white/rose/sparkling/champagne/dessert_wine/fortified
+  wine_characteristics wine_characteristics[], -- array: [dry, still] oppure [sweet, sparkling]
+  grape_variety VARCHAR(255), -- es: "Sangiovese", "Chardonnay"
+  wine_region VARCHAR(255), -- es: "Toscana", "Piemonte"
+  wine_producer VARCHAR(255), -- produttore/cantina
+  vintage INTEGER, -- annata (es: 2020)
+  
+  -- Campi specifici per BIRRE
+  beer_style beer_style, -- lager/ale/ipa/stout/pilsner/wheat/sour/porter/amber/other
+  brewery VARCHAR(255), -- birrificio
+  ibu INTEGER, -- International Bitterness Units
+  
+  -- Campi aggiuntivi JSONB per flessibilità futura
+  extra_info JSONB DEFAULT '{}'::jsonb, -- Per info custom
+  
+  -- Timestamp
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Constraints
+  CONSTRAINT menu_items_name_check CHECK (char_length(name) >= 1),
+  CONSTRAINT menu_items_price_check CHECK (price IS NULL OR price >= 0),
+  CONSTRAINT menu_items_currency_check CHECK (char_length(currency) = 3),
+  CONSTRAINT menu_items_alcohol_check CHECK (alcohol_content IS NULL OR (alcohol_content >= 0 AND alcohol_content <= 100)),
+  CONSTRAINT menu_items_volume_check CHECK (volume_ml IS NULL OR volume_ml > 0),
+  CONSTRAINT menu_items_vintage_check CHECK (vintage IS NULL OR (vintage >= 1900 AND vintage <= 2100)),
+  CONSTRAINT menu_items_ibu_check CHECK (ibu IS NULL OR (ibu >= 0 AND ibu <= 150))
+);
+
+-- Indexes
+CREATE INDEX idx_menu_items_section ON menu_items(section_id);
+CREATE INDEX idx_menu_items_order ON menu_items(section_id, display_order);
+CREATE INDEX idx_menu_items_type ON menu_items(item_type);
+CREATE INDEX idx_menu_items_available ON menu_items(is_available) WHERE is_available = true;
+CREATE INDEX idx_menu_items_featured ON menu_items(is_featured) WHERE is_featured = true;
+CREATE INDEX idx_menu_items_wine_type ON menu_items(wine_type) WHERE wine_type IS NOT NULL;
+CREATE INDEX idx_menu_items_beer_style ON menu_items(beer_style) WHERE beer_style IS NOT NULL;
+
+-- Index GIN per arrays
+CREATE INDEX idx_menu_items_wine_char ON menu_items USING GIN (wine_characteristics) WHERE wine_characteristics IS NOT NULL;
+CREATE INDEX idx_menu_items_extra ON menu_items USING GIN (extra_info);
+
+-- 2. MENU_ITEM_TRANSLATIONS - Traduzioni dei piatti
+CREATE TABLE menu_item_translations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  language_code VARCHAR(10) NOT NULL,
+  field_name VARCHAR(50) NOT NULL, -- 'name', 'description'
+  field_value TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(item_id, language_code, field_name)
+);
+
+CREATE INDEX idx_item_translations_item ON menu_item_translations(item_id);
+CREATE INDEX idx_item_translations_language ON menu_item_translations(language_code);
+
+-- 3. ITEM_INGREDIENTS - Ingredienti dei piatti
+CREATE TABLE item_ingredients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL, -- Nome ingrediente in italiano
+  display_order INTEGER DEFAULT 0,
+  is_main BOOLEAN DEFAULT false, -- Ingrediente principale
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  CONSTRAINT item_ingredients_name_check CHECK (char_length(name) >= 1)
+);
+
+CREATE INDEX idx_item_ingredients_item ON item_ingredients(item_id);
+CREATE INDEX idx_item_ingredients_order ON item_ingredients(item_id, display_order);
+
+-- 4. ITEM_INGREDIENT_TRANSLATIONS - Traduzioni ingredienti
+CREATE TABLE item_ingredient_translations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ingredient_id UUID NOT NULL REFERENCES item_ingredients(id) ON DELETE CASCADE,
+  language_code VARCHAR(10) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(ingredient_id, language_code)
+);
+
+CREATE INDEX idx_ingredient_translations_ingredient ON item_ingredient_translations(ingredient_id);
+CREATE INDEX idx_ingredient_translations_language ON item_ingredient_translations(language_code);
+
+-- 5. ITEM_ALLERGENS - Allergeni collegati agli items
+CREATE TABLE item_allergens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  allergen_code VARCHAR(50) NOT NULL, -- es: "glutine", "lattosio"
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(item_id, allergen_code),
+  CONSTRAINT item_allergens_code_check CHECK (char_length(allergen_code) >= 1)
+);
+
+CREATE INDEX idx_item_allergens_item ON item_allergens(item_id);
+CREATE INDEX idx_item_allergens_code ON item_allergens(allergen_code);
+
+-- 6. ITEM_ALLERGEN_TRANSLATIONS - Traduzioni allergeni per item
+CREATE TABLE item_allergen_translations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  allergen_id UUID NOT NULL REFERENCES item_allergens(id) ON DELETE CASCADE,
+  language_code VARCHAR(10) NOT NULL,
+  display_name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(allergen_id, language_code)
+);
+
+CREATE INDEX idx_item_allergen_translations_allergen ON item_allergen_translations(allergen_id);
+CREATE INDEX idx_item_allergen_translations_language ON item_allergen_translations(language_code);
+
+-- 7. ITEM_DIETARY_TAGS - Tag dietetici collegati agli items
+CREATE TABLE item_dietary_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  tag_code VARCHAR(50) NOT NULL, -- es: "vegetariano", "vegano"
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(item_id, tag_code),
+  CONSTRAINT item_dietary_tags_code_check CHECK (char_length(tag_code) >= 1)
+);
+
+CREATE INDEX idx_item_dietary_tags_item ON item_dietary_tags(item_id);
+CREATE INDEX idx_item_dietary_tags_code ON item_dietary_tags(tag_code);
+
+-- 8. DIETARY_TAG_TRANSLATIONS - Traduzioni tag dietetici per item
+CREATE TABLE dietary_tag_translations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tag_id UUID NOT NULL REFERENCES item_dietary_tags(id) ON DELETE CASCADE,
+  language_code VARCHAR(10) NOT NULL,
+  display_name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(tag_id, language_code)
+);
+
+CREATE INDEX idx_dietary_tag_translations_tag ON dietary_tag_translations(tag_id);
+CREATE INDEX idx_dietary_tag_translations_language ON dietary_tag_translations(language_code);
+
+-- =====================================================
+-- TRIGGER per aggiornare updated_at
+-- =====================================================
+
+CREATE TRIGGER update_menu_items_updated_at BEFORE UPDATE ON menu_items
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_menu_item_translations_updated_at BEFORE UPDATE ON menu_item_translations
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- ROW LEVEL SECURITY (RLS)
+-- =====================================================
+
+ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menu_item_translations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_ingredients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_ingredient_translations ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE dietary_tag_translations ENABLE ROW LEVEL SECURITY;
+
+-- Policy per MENU_ITEMS
+CREATE POLICY "Users can view items in their menus"
+  ON menu_items FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_sections
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_sections.id = menu_items.section_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can create items in their menus"
+  ON menu_items FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM menu_sections
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_sections.id = menu_items.section_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update items in their menus"
+  ON menu_items FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_sections
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_sections.id = menu_items.section_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete items in their menus"
+  ON menu_items FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_sections
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_sections.id = menu_items.section_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per MENU_ITEM_TRANSLATIONS
+CREATE POLICY "Users can view translations of their items"
+  ON menu_item_translations FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = menu_item_translations.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can create translations for their items"
+  ON menu_item_translations FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = menu_item_translations.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update translations of their items"
+  ON menu_item_translations FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = menu_item_translations.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete translations of their items"
+  ON menu_item_translations FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = menu_item_translations.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per ITEM_INGREDIENTS (simili a menu_items)
+CREATE POLICY "Users can view ingredients of their items"
+  ON item_ingredients FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_ingredients.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can manage ingredients of their items"
+  ON item_ingredients FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_ingredients.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per ITEM_INGREDIENT_TRANSLATIONS
+CREATE POLICY "Users can manage ingredient translations"
+  ON item_ingredient_translations FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM item_ingredients
+      JOIN menu_items ON menu_items.id = item_ingredients.item_id
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE item_ingredients.id = item_ingredient_translations.ingredient_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per ITEM_ALLERGENS
+CREATE POLICY "Users can view allergens of their items"
+  ON item_allergens FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_allergens.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can manage allergens of their items"
+  ON item_allergens FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_allergens.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per ITEM_ALLERGEN_TRANSLATIONS
+CREATE POLICY "Users can manage allergen translations"
+  ON item_allergen_translations FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM item_allergens
+      JOIN menu_items ON menu_items.id = item_allergens.item_id
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE item_allergens.id = item_allergen_translations.allergen_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per ITEM_DIETARY_TAGS
+CREATE POLICY "Users can view dietary tags of their items"
+  ON item_dietary_tags FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_dietary_tags.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can manage dietary tags of their items"
+  ON item_dietary_tags FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM menu_items
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE menu_items.id = item_dietary_tags.item_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- Policy per DIETARY_TAG_TRANSLATIONS
+CREATE POLICY "Users can manage dietary tag translations"
+  ON dietary_tag_translations FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM item_dietary_tags
+      JOIN menu_items ON menu_items.id = item_dietary_tags.item_id
+      JOIN menu_sections ON menu_sections.id = menu_items.section_id
+      JOIN menus ON menus.id = menu_sections.menu_id
+      WHERE item_dietary_tags.id = dietary_tag_translations.tag_id
+      AND menus.user_id = auth.uid()
+    )
+  );
+
+-- =====================================================
+-- DATI DI ESEMPIO - Allergeni Standard
+-- =====================================================
+
+-- NON inserire dati di esempio nel database!
+-- Le traduzioni degli allergeni e tag dietetici verranno gestite lato applicazione
+-- oppure inserite manualmente dall'amministratore quando necessario
+
+-- =====================================================
+-- VISTE AGGREGATE
+-- =====================================================
+
+-- Vista per items con traduzioni
+CREATE OR REPLACE VIEW menu_items_with_translations AS
+SELECT 
+  mi.id,
+  mi.section_id,
+  mi.item_type,
+  mi.name,
+  mi.description,
+  mi.price,
+  mi.currency,
+  mi.image_url,
+  mi.display_order,
+  mi.is_available,
+  mi.is_featured,
+  mi.allergens,
+  mi.dietary_tags,
+  mi.alcohol_content,
+  mi.serving_format,
+  mi.volume_ml,
+  mi.wine_type,
+  mi.wine_characteristics,
+  mi.grape_variety,
+  mi.wine_region,
+  mi.wine_producer,
+  mi.vintage,
+  mi.beer_style,
+  mi.brewery,
+  mi.ibu,
+  json_agg(
+    json_build_object(
+      'language_code', mit.language_code,
+      'field_name', mit.field_name,
+      'field_value', mit.field_value
+    )
+  ) FILTER (WHERE mit.id IS NOT NULL) AS translations
+FROM menu_items mi
+LEFT JOIN menu_item_translations mit ON mit.item_id = mi.id
+GROUP BY mi.id;
