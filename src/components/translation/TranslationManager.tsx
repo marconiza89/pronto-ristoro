@@ -42,27 +42,48 @@ export default function TranslationManager({
 
   // Filtra le traduzioni per questo campo
   const fieldTranslations = translations.filter(t => t.field_name === fieldName)
-  
+
   // Ottieni le lingue già tradotte
   const translatedLanguages = fieldTranslations.map(t => t.language_code)
-  
+
   // Lingue disponibili per aggiungere
   const availableLanguages = LANGUAGES.filter(l => !translatedLanguages.includes(l.code))
 
   const handleAutoTranslate = async () => {
+    // Validazioni prima della chiamata API
+    if (!italianText || !italianText.trim()) return
+    if (!selectedLanguage) return
+
     setIsTranslating(true)
-    
-    // TODO: Implementare chiamata API per traduzione automatica
-    // Per ora simuliamo con un placeholder
-    setTimeout(() => {
-      setTranslatedText(`[Traduzione automatica di: "${italianText}" in ${selectedLanguage}]`)
+    try {
+      const res = await fetch('/api/translation/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: italianText,           // testo in italiano da tradurre
+          languageCode: selectedLanguage, // es: 'en', 'fr', ecc.
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.error || 'Errore durante la traduzione')
+      }
+
+      const data = await res.json()
+      setTranslatedText(data.translatedText || '')
+    } catch (error) {
+      console.error(error)
+      // In produzione puoi mostrare un toast/alert
+      alert('Impossibile completare la traduzione. Riprova.')
+    } finally {
       setIsTranslating(false)
-    }, 1000)
+    }
   }
 
   const handleSaveTranslation = async () => {
     if (!translatedText.trim()) return
-    
+
     await onSave(selectedLanguage, translatedText)
     setTranslatedText('')
     setShowAddLanguage(false)
@@ -70,7 +91,7 @@ export default function TranslationManager({
 
   const handleUpdateTranslation = async (languageCode: LanguageCode) => {
     if (!editingText.trim()) return
-    
+
     await onSave(languageCode, editingText)
     setEditingLanguage(null)
     setEditingText('')
@@ -96,7 +117,7 @@ export default function TranslationManager({
           {fieldTranslations.map((translation) => {
             const lang = LANGUAGES.find(l => l.code === translation.language_code)
             const isEditing = editingLanguage === translation.language_code
-            
+
             return (
               <div key={translation.id} className="flex items-start space-x-2 p-3 bg-gray-50 rounded-md">
                 <span className="text-2xl mt-1">{lang?.flag}</span>
@@ -193,7 +214,7 @@ export default function TranslationManager({
                   {isTranslating ? 'Traduzione...' : 'Traduci automaticamente'}
                 </button>
               </div>
-              
+
               <textarea
                 value={translatedText}
                 onChange={(e) => setTranslatedText(e.target.value)}
@@ -201,7 +222,7 @@ export default function TranslationManager({
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-mainblue focus:border-mainblue"
                 rows={3}
               />
-              
+
               <div className="flex space-x-2">
                 <button
                   onClick={handleSaveTranslation}
@@ -220,7 +241,7 @@ export default function TranslationManager({
                   Annulla
                 </button>
               </div>
-              
+
               <p className="text-xs text-gray-500 italic">
                 Nota: La traduzione automatica sarà disponibile a breve. Per ora puoi inserire manualmente la traduzione.
               </p>
