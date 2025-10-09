@@ -24,6 +24,7 @@ import {
 } from '@/utils/menu/menu-item-helpers'
 import MenuItemModal from './MenuItemModal'
 import type { MenuItem } from '@/types/menuItem'
+import TranslationModal from '@/components/menu/TranslationModal'
 
 export default function EditMenuPage({
     params,
@@ -55,6 +56,7 @@ export default function EditMenuPage({
     const [newSectionDescription, setNewSectionDescription] = useState('')
     const [newSectionIcon, setNewSectionIcon] = useState('')
     const [sectionItems, setSectionItems] = useState<Record<string, MenuItem[]>>({})
+    const [showTranslationModal, setShowTranslationModal] = useState(false)
 
     // Item modal states
     const [showItemModal, setShowItemModal] = useState(false)
@@ -307,6 +309,13 @@ export default function EditMenuPage({
         setExpandedSections(newExpanded)
     }
 
+    const handleTranslationsComplete = async () => {
+        setSuccessMessage('Traduzioni completate con successo!')
+        setTimeout(() => setSuccessMessage(null), 3000)
+        // Opzionale: ricarica i dati se necessario
+        await loadData()
+    }
+
     const handleAddItem = (sectionId: string) => {
         setCurrentSectionId(sectionId)
         setItemToEdit(null)
@@ -479,15 +488,30 @@ export default function EditMenuPage({
                 <div className="bg-white shadow-xl rounded-lg border border-gray-300 p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-mainblue">Sezioni del Menu</h2>
-                        <button
-                            onClick={() => setShowAddSection(true)}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-mainblue rounded-md hover:bg-mainblue-light"
-                        >
-                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Aggiungi Sezione
-                        </button>
+                        <div className="flex space-x-2">
+                            {/* Bottone Traduzioni */}
+                            <button
+                                onClick={() => setShowTranslationModal(true)}
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-mainblue bg-white border border-mainblue rounded-md hover:bg-mainblue/5"
+                                title="Traduci contenuti menu"
+                            >
+                                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                </svg>
+                                Traduzioni
+                            </button>
+
+                            {/* Bottone Aggiungi Sezione */}
+                            <button
+                                onClick={() => setShowAddSection(true)}
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-mainblue rounded-md hover:bg-mainblue-light"
+                            >
+                                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Aggiungi Sezione
+                            </button>
+                        </div>
                     </div>
 
                     {/* Sections List */}
@@ -867,12 +891,7 @@ export default function EditMenuPage({
                 )}
 
                 {/* Info footer */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                        <strong>Prossimi passi:</strong> Le sezioni sono pronte! Ora potrai aggiungere piatti e
-                        prodotti a ciascuna sezione. Questa funzionalità sarà disponibile a breve.
-                    </p>
-                </div>
+
                 {/* Menu Item Modal */}
                 <MenuItemModal
                     isOpen={showItemModal}
@@ -885,6 +904,14 @@ export default function EditMenuPage({
                     onSuccess={handleItemModalSuccess}
                 />
             </div>
+            <TranslationModal
+                isOpen={showTranslationModal}
+                onClose={() => setShowTranslationModal(false)}
+                menu={menu}
+                sections={sections}
+                sectionItems={sectionItems}
+                onTranslationsComplete={handleTranslationsComplete}
+            />
         </div>
     )
 }

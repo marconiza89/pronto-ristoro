@@ -83,7 +83,7 @@ export default function MenuItemModal({
   const [activeTab, setActiveTab] = useState<'base' | 'details' | 'allergens'>('base')
   const [userId, setUserId] = useState<string>('')
   const router = useRouter()
-    const supabase = createClient()
+  const supabase = createClient()
 
   // Form fields - Base
   const [name, setName] = useState('')
@@ -93,6 +93,8 @@ export default function MenuItemModal({
   const [imageUrl, setImageUrl] = useState('')
   const [isAvailable, setIsAvailable] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
+  const [autoCompleting, setAutoCompleting] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // Form fields - Details
   const [preparationTime, setPreparationTime] = useState<string>('')
@@ -130,15 +132,15 @@ export default function MenuItemModal({
     }
   }, [itemToEdit, isOpen])
 
-  
+
 
   const loadItemData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push('/login')
-                return
-            }
-            setUserId(user.id)
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    setUserId(user.id)
     if (!itemToEdit) return
 
     try {
@@ -238,6 +240,60 @@ export default function MenuItemModal({
     setSelectedDietaryTags(prev =>
       prev.includes(code) ? prev.filter(t => t !== code) : [...prev, code]
     )
+  }
+
+  const handleAutoComplete = async () => {
+    if (!name.trim()) return
+
+    setAutoCompleting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/items/autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemName: name.trim(),
+          itemType: itemType,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Errore durante il completamento automatico')
+      }
+
+      const data = await response.json()
+
+      // Compila i campi con i dati ricevuti
+      if (data.description) {
+        setDescription(data.description)
+      }
+
+      // Compila ingredienti (array separato)
+      if (data.ingredients && Array.isArray(data.ingredients)) {
+        setIngredients(data.ingredients)
+      }
+
+      // Compila allergeni
+      if (data.allergens && Array.isArray(data.allergens)) {
+        setSelectedAllergens(data.allergens)
+      }
+
+      // Compila calorie
+      if (data.calories) {
+        setCalories(data.calories.toString())
+      }
+
+      // Mostra messaggio di successo
+      setSuccessMessage('Informazioni compilate automaticamente! Verifica e modifica se necessario.')
+      setTimeout(() => setSuccessMessage(null), 5000)
+
+    } catch (err: any) {
+      setError(err.message || 'Errore durante il completamento automatico')
+    } finally {
+      setAutoCompleting(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -356,31 +412,28 @@ export default function MenuItemModal({
           <nav className="-mb-px flex space-x-6">
             <button
               onClick={() => setActiveTab('base')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'base'
-                  ? 'border-mainblue text-mainblue'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'base'
+                ? 'border-mainblue text-mainblue'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Informazioni Base
             </button>
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'details'
-                  ? 'border-mainblue text-mainblue'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'details'
+                ? 'border-mainblue text-mainblue'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Dettagli
             </button>
             <button
               onClick={() => setActiveTab('allergens')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'allergens'
-                  ? 'border-mainblue text-mainblue'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'allergens'
+                ? 'border-mainblue text-mainblue'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Allergeni & Tag
             </button>
@@ -428,6 +481,51 @@ export default function MenuItemModal({
                   ))}
                 </select>
               </div>
+              {/* Auto-complete AI */}
+              {itemToEdit && name.trim() && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                        ✨ Compila automaticamente con AI
+                      </h4>
+                      <p className="text-xs text-gray-600 mb-3">
+                        L'intelligenza artificiale può generare descrizione, ingredienti, allergeni e calorie basandosi sul nome del piatto. Potrai sempre modificare i dati generati.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleAutoComplete}
+                        disabled={autoCompleting}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200"
+                      >
+                        {autoCompleting ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Generazione in corso...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Compila con AI
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Descrizione */}
               <div>
@@ -459,7 +557,7 @@ export default function MenuItemModal({
               </div>
 
               {/* Image URL */}
-           <div>  <ItemImageManager value={imageUrl} onChange={setImageUrl} userId={userId} itemId={itemToEdit?.id} itemName={name} /> </div>
+              <div>  <ItemImageManager value={imageUrl} onChange={setImageUrl} userId={userId} itemId={itemToEdit?.id} itemName={name} /> </div>
 
               {/* Checkboxes */}
               <div className="space-y-2">
@@ -780,11 +878,10 @@ export default function MenuItemModal({
                   {ALLERGEN_CODES.map((code) => (
                     <label
                       key={code}
-                      className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                        selectedAllergens.includes(code)
-                          ? 'bg-red-50 border-red-300'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
+                      className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${selectedAllergens.includes(code)
+                        ? 'bg-red-50 border-red-300'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -822,11 +919,10 @@ export default function MenuItemModal({
                   {DIETARY_TAG_CODES.map((code) => (
                     <label
                       key={code}
-                      className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${
-                        selectedDietaryTags.includes(code)
-                          ? 'bg-green-50 border-green-300'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
+                      className={`flex items-center p-3 border rounded-md cursor-pointer transition-colors ${selectedDietaryTags.includes(code)
+                        ? 'bg-green-50 border-green-300'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
                     >
                       <input
                         type="checkbox"
