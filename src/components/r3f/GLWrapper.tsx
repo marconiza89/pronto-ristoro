@@ -6,7 +6,7 @@ import  Background  from "../ui/Background";
 
  export function GLWrapper() {
     return (
-    <div className="absolute   w-full h-full" >
+    <div className="absolute w-full h-full" >
         {/* <GL /> */}
         <Background />
     </div>

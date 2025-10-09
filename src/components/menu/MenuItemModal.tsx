@@ -347,7 +347,20 @@ export default function MenuItemModal({
         itemId = created.id
       }
 
-      // Gestione ingredienti
+     if (itemToEdit) {
+        const { data: existingIngredients } = await supabase
+          .from('item_ingredients')
+          .select('id')
+          .eq('item_id', itemId)
+        
+        if (existingIngredients && existingIngredients.length > 0) {
+          for (const ing of existingIngredients) {
+            await deleteIngredient(ing.id)
+          }
+        }
+      }
+      
+      // Poi aggiungi i nuovi ingredienti
       for (const ing of ingredients) {
         await createIngredient({
           item_id: itemId,

@@ -22,7 +22,7 @@ import {
     toggleItemAvailability,
     duplicateMenuItem,
 } from '@/utils/menu/menu-item-helpers'
-import MenuItemModal from './MenuItemModal'
+import MenuItemModal from '../../../../../../components/menu/MenuItemModal'
 import type { MenuItem } from '@/types/menuItem'
 import TranslationModal from '@/components/menu/TranslationModal'
 
