@@ -14,7 +14,7 @@ import {
     deleteMenuSection,
     reorderMenuSections,
 } from '@/utils/menu/menu-helpers'
-import type { Menu, MenuSection } from '@/types/menu'
+import type { Menu, MenuSection, MenuSectionTranslation } from '@/types/menu'
 import type { Restaurant } from '@/types/restaurant'
 import {
     getSectionItems,
@@ -25,6 +25,7 @@ import {
 import MenuItemModal from '../../../../../../components/menu/MenuItemModal'
 import type { MenuItem } from '@/types/menuItem'
 import TranslationModal from '@/components/menu/TranslationModal'
+import LanguageIndicators from '@/components/menu/LanguageIndicator'
 
 export default function EditMenuPage({
     params,
@@ -43,11 +44,13 @@ export default function EditMenuPage({
     const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
     const [menu, setMenu] = useState<Menu | null>(null)
     const [sections, setSections] = useState<MenuSection[]>([])
+    const [translations, setTranslations] = useState<MenuSectionTranslation[]>([])
 
     // Form fields
     const [menuName, setMenuName] = useState('')
     const [menuDescription, setMenuDescription] = useState('')
     const [isActive, setIsActive] = useState(true)
+
 
     // Modal states
     const [showAddSection, setShowAddSection] = useState(false)
@@ -65,6 +68,7 @@ export default function EditMenuPage({
 
     // Expanded sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+    
 
     useEffect(() => {
         loadData()
@@ -116,6 +120,21 @@ export default function EditMenuPage({
                 }
                 setSectionItems(itemsMap)
             }
+
+            // Load all section translations for this menu
+            if (menuData.sections) {
+                const sectionIds = menuData.sections.map(s => s.id)
+                const { data: translationsData } = await supabase
+                    .from('menu_section_translations')
+                    .select('*')
+                    .in('section_id', sectionIds)
+
+                if (translationsData) {
+                    setTranslations(translationsData)
+                }
+            }
+
+
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -488,6 +507,7 @@ export default function EditMenuPage({
                 <div className="bg-white shadow-xl rounded-lg border border-gray-300 p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-mainblue">Sezioni del Menu</h2>
+                        
                         <div className="flex space-x-2">
                             {/* Bottone Traduzioni */}
                             <button
@@ -524,6 +544,8 @@ export default function EditMenuPage({
                             {sections.map((section, index) => {
                                 const items = sectionItems[section.id] || []
                                 const isExpanded = expandedSections.has(section.id)
+                                const sectionTranslations = translations.filter(t => t.section_id === section.id)
+                                
 
                                 return (
                                     <div
@@ -568,6 +590,7 @@ export default function EditMenuPage({
                                                     </span>
                                                 </div>
                                             </div>
+                                             <LanguageIndicators translations={sectionTranslations} />
 
                                             <div className="flex items-center space-x-2 ml-4">
                                                 {/* Mantieni i bottoni esistenti per move/edit/delete */}

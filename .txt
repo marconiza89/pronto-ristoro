@@ -3,16 +3,12 @@ Correzioni
 - userId non è disponibile se scheda item non viene salvata (loadItemData da sistemare)
 - errore in console (probabile dovuto a DevTools )
 - errore da 192.168.1.13 (indagare)
-- Salvando gli Item gli ingredienti presenti si sdoppiano
-- Salvando un item dopo modifica errore su allergeni (da riprodurre) 
+- in traduzione deve essere opzionale solo nome piatto, nome menu con possibilità di sovrascivere, vanno controllate le traduzioni presenti.
 
-Error adding allergen to item: {}
 
-Call Stack
-5
 
-Show 3 ignore-listed frame(s)
-addAllergenToItem
-file:///D:/ADEV2025/prototipi/pronto-ristoro/.next/static/chunks/src_8c78f2b2._.js (1150:17)
-async handleSubmit
-file:///D:/ADEV2025/prototipi/pronto-ristoro/.next/static/chunks/src_8c78f2b2._.js (2191:17)
+
+
+Aggiunte
+- generazione item da foto
+- generazione intero menu da foto
