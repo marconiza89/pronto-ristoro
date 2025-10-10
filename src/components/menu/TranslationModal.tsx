@@ -1,4 +1,4 @@
-// src/components/menu/TranslationModal.tsx - VERSIONE CORRETTA COMPLETA
+// src/components/menu/TranslationModal.tsx - VERSIONE CON CHECKBOX PER CATEGORIA
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -23,8 +23,15 @@ interface TranslationItem {
   content: string
   label: string
   entityId: string
-  checked: boolean
   parentLabel?: string
+}
+
+interface CategoryGroup {
+  type: 'menu_name' | 'menu_description' | 'section_name' | 'section_description' | 'item_name' | 'item_description' | 'ingredient' | 'allergen'
+  label: string
+  icon: string
+  items: TranslationItem[]
+  checked: boolean
 }
 
 const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
@@ -39,6 +46,17 @@ const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
   { code: 'ru', label: 'Russo', flag: '🇷🇺' },
 ]
 
+const CATEGORY_INFO = {
+  menu_name: { label: 'Nome Menu', icon: '📋' },
+  menu_description: { label: 'Descrizione Menu', icon: '📋' },
+  section_name: { label: 'Nomi Sezioni', icon: '📑' },
+  section_description: { label: 'Descrizioni Sezioni', icon: '📑' },
+  item_name: { label: 'Nomi Piatti', icon: '🍽️' },
+  item_description: { label: 'Descrizioni Piatti', icon: '🍽️' },
+  ingredient: { label: 'Ingredienti', icon: '🥬' },
+  allergen: { label: 'Allergeni', icon: '⚠️' },
+}
+
 export default function TranslationModal({
   isOpen,
   onClose,
@@ -48,7 +66,7 @@ export default function TranslationModal({
   onTranslationsComplete,
 }: TranslationModalProps) {
   const [selectedLanguages, setSelectedLanguages] = useState<LanguageCode[]>(['en'])
-  const [translationItems, setTranslationItems] = useState<TranslationItem[]>([])
+  const [categories, setCategories] = useState<CategoryGroup[]>([])
   const [isTranslating, setIsTranslating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState({ current: 0, total: 0 })
@@ -65,7 +83,12 @@ export default function TranslationModal({
     const items: TranslationItem[] = []
 
     try {
-      // Menu Name (non selezionato di default)
+      console.log('🔍 Building translation items...')
+      console.log('Menu:', menu)
+      console.log('Sections:', sections)
+      console.log('SectionItems:', sectionItems)
+
+      // Menu Name
       if (menu.name?.trim()) {
         items.push({
           id: `menu-name-${menu.id}`,
@@ -73,11 +96,11 @@ export default function TranslationModal({
           content: menu.name,
           label: 'Nome Menu',
           entityId: menu.id,
-          checked: false,
         })
+        console.log('✅ Added menu name')
       }
 
-      // Menu Description (selezionato di default)
+      // Menu Description
       if (menu.description?.trim()) {
         items.push({
           id: `menu-desc-${menu.id}`,
@@ -85,125 +108,163 @@ export default function TranslationModal({
           content: menu.description,
           label: 'Descrizione Menu',
           entityId: menu.id,
-          checked: true,
         })
+        console.log('✅ Added menu description')
       }
 
       // Sections
       for (const section of sections) {
-        // Section Name (non selezionato)
+        console.log(`📑 Processing section: ${section.name}`)
+        
         if (section.name?.trim()) {
           items.push({
             id: `section-name-${section.id}`,
             type: 'section_name',
             content: section.name,
-            label: `Nome Sezione`,
+            label: section.name,
             entityId: section.id,
             parentLabel: section.name,
-            checked: false,
           })
         }
 
-        // Section Description (selezionato)
         if (section.description?.trim()) {
           items.push({
             id: `section-desc-${section.id}`,
             type: 'section_description',
             content: section.description,
-            label: `Descrizione Sezione`,
+            label: section.name,
             entityId: section.id,
             parentLabel: section.name,
-            checked: true,
           })
         }
 
         // Items in this section
         const items_in_section = sectionItems[section.id] || []
+        console.log(`  📦 Items in section ${section.name}:`, items_in_section.length)
 
         for (const item of items_in_section) {
-          // Item Name (non selezionato)
+          console.log(`    🍽️ Processing item: ${item.name}`)
+          
           if (item.name?.trim()) {
             items.push({
               id: `item-name-${item.id}`,
               type: 'item_name',
               content: item.name,
-              label: `Nome Piatto`,
+              label: item.name,
               entityId: item.id,
               parentLabel: `${section.name} → ${item.name}`,
-              checked: false,
             })
+            console.log(`      ✅ Added item name: ${item.name}`)
           }
 
-          // Item Description (selezionato)
           if (item.description?.trim()) {
             items.push({
               id: `item-desc-${item.id}`,
               type: 'item_description',
               content: item.description,
-              label: `Descrizione Piatto`,
+              label: item.name,
               entityId: item.id,
               parentLabel: `${section.name} → ${item.name}`,
-              checked: true,
             })
+            console.log(`      ✅ Added item description`)
           }
 
-          // Carica dettagli completi dell'item per ingredienti e allergeni
+          // Carica dettagli completi dell'item
           try {
+            console.log(`      🔄 Loading full item relations for: ${item.name}`)
             const fullItem = await getMenuItemWithRelations(item.id)
+            console.log(`      📊 Full item data:`, fullItem)
 
             if (fullItem) {
-              // INGREDIENTI - OGNI INGREDIENTE HA IL SUO ID
+              // Ingredienti
               if (fullItem.ingredients && fullItem.ingredients.length > 0) {
+                console.log(`      🥬 Found ${fullItem.ingredients.length} ingredients`)
                 fullItem.ingredients.forEach((ingredient) => {
                   if (ingredient.name?.trim()) {
                     items.push({
                       id: `ingredient-${ingredient.id}`,
                       type: 'ingredient',
                       content: ingredient.name,
-                      label: `Ingrediente: ${ingredient.name}`,
-                      entityId: ingredient.id, // ⭐ QUESTO È L'ID DELL'INGREDIENTE SPECIFICO
+                      label: ingredient.name,
+                      entityId: ingredient.id,
                       parentLabel: `${section.name} → ${item.name}`,
-                      checked: true,
                     })
+                    console.log(`        ✅ Added ingredient: ${ingredient.name}`)
                   }
                 })
+              } else {
+                console.log(`      ℹ️ No ingredients found`)
               }
 
-              // ALLERGENI - OGNI ALLERGENE HA IL SUO ID
+              // Allergeni
               if (fullItem.allergens && fullItem.allergens.length > 0) {
+                console.log(`      ⚠️ Found ${fullItem.allergens.length} allergens`)
                 fullItem.allergens.forEach((allergen) => {
                   const allergenName = ALLERGEN_LABELS_IT[allergen.allergen_code] || allergen.allergen_code
                   items.push({
                     id: `allergen-${allergen.id}`,
                     type: 'allergen',
                     content: allergenName,
-                    label: `Allergene: ${allergenName}`,
-                    entityId: allergen.id, // ⭐ QUESTO È L'ID DELLA RELAZIONE ITEM-ALLERGEN
+                    label: allergenName,
+                    entityId: allergen.id,
                     parentLabel: `${section.name} → ${item.name}`,
-                    checked: true,
                   })
+                  console.log(`        ✅ Added allergen: ${allergenName}`)
                 })
+              } else {
+                console.log(`      ℹ️ No allergens found`)
               }
+            } else {
+              console.log(`      ⚠️ Full item is null`)
             }
           } catch (err) {
-            console.error(`Error loading details for item ${item.id}:`, err)
+            console.error(`      ❌ Error loading details for item ${item.id}:`, err)
           }
         }
       }
 
-      setTranslationItems(items)
+      console.log(`📊 Total items collected: ${items.length}`)
+      console.log('Items breakdown:', items.reduce((acc, item) => {
+        acc[item.type] = (acc[item.type] || 0) + 1
+        return acc
+      }, {} as Record<string, number>))
+
+      // Raggruppa per categoria
+      const grouped = groupByCategory(items)
+      console.log('📊 Grouped categories:', grouped)
+      setCategories(grouped)
     } catch (err) {
-      console.error('Error building translation items:', err)
+      console.error('❌ Error building translation items:', err)
       setError('Errore nel caricamento dei contenuti da tradurre')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const toggleItem = (itemId: string) => {
-    setTranslationItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId ? { ...item, checked: !item.checked } : item
+  const groupByCategory = (items: TranslationItem[]): CategoryGroup[] => {
+    const groups: Record<string, TranslationItem[]> = {}
+
+    items.forEach(item => {
+      if (!groups[item.type]) {
+        groups[item.type] = []
+      }
+      groups[item.type].push(item)
+    })
+
+    return Object.entries(groups).map(([type, items]) => ({
+      type: type as CategoryGroup['type'],
+      label: CATEGORY_INFO[type as keyof typeof CATEGORY_INFO].label,
+      icon: CATEGORY_INFO[type as keyof typeof CATEGORY_INFO].icon,
+      items,
+      // Per default: nomi non selezionati, descrizioni/ingredienti/allergeni selezionati
+      checked: !type.includes('name'),
+    }))
+  }
+
+  const toggleCategory = (categoryType: string) => {
+    setCategories((prev) =>
+      prev.map((cat) =>
+        cat.type === categoryType ? { ...cat, checked: !cat.checked } : cat
       )
     )
   }
@@ -217,18 +278,24 @@ export default function TranslationModal({
   }
 
   const selectAll = () => {
-    setTranslationItems((prev) => prev.map((item) => ({ ...item, checked: true })))
+    setCategories((prev) => prev.map((cat) => ({ ...cat, checked: true })))
   }
 
   const deselectAll = () => {
-    setTranslationItems((prev) => prev.map((item) => ({ ...item, checked: false })))
+    setCategories((prev) => prev.map((cat) => ({ ...cat, checked: false })))
   }
 
   const handleTranslate = async () => {
-    const itemsToTranslate = translationItems.filter((item) => item.checked)
+    // Raccogli tutti gli item dalle categorie selezionate
+    const itemsToTranslate: TranslationItem[] = []
+    categories.forEach(cat => {
+      if (cat.checked) {
+        itemsToTranslate.push(...cat.items)
+      }
+    })
 
     if (itemsToTranslate.length === 0) {
-      setError('Seleziona almeno un elemento da tradurre')
+      setError('Seleziona almeno una categoria da tradurre')
       return
     }
 
@@ -248,7 +315,6 @@ export default function TranslationModal({
       for (const item of itemsToTranslate) {
         for (const langCode of selectedLanguages) {
           try {
-            // Chiamata API per traduzione
             const response = await fetch('/api/translation/batch', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -284,7 +350,6 @@ export default function TranslationModal({
         }
       }
 
-      // Mostra risultato
       if (failed === 0) {
         onTranslationsComplete()
         onClose()
@@ -301,15 +366,8 @@ export default function TranslationModal({
 
   if (!isOpen) return null
 
-  const selectedCount = translationItems.filter((i) => i.checked).length
-  const totalCount = translationItems.length
-
-  // Raggruppa items per tipo
-  const menuItems = translationItems.filter(i => i.type.startsWith('menu_'))
-  const sectionTranslationItems = translationItems.filter(i => i.type.startsWith('section_'))
-  const itemItems = translationItems.filter(i => i.type.startsWith('item_'))
-  const ingredientItems = translationItems.filter(i => i.type === 'ingredient')
-  const allergenItems = translationItems.filter(i => i.type === 'allergen')
+  const selectedCount = categories.filter(c => c.checked).reduce((sum, cat) => sum + cat.items.length, 0)
+  const totalCount = categories.reduce((sum, cat) => sum + cat.items.length, 0)
 
   return (
     <div
@@ -324,7 +382,7 @@ export default function TranslationModal({
               Traduzioni Automatiche
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Seleziona i contenuti da tradurre e le lingue di destinazione
+              Seleziona le categorie da tradurre e le lingue di destinazione
             </p>
           </div>
           <button
@@ -378,11 +436,11 @@ export default function TranslationModal({
             </div>
           </div>
 
-          {/* Content Selection */}
+          {/* Category Selection */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900">
-                📝 Contenuti da tradurre ({selectedCount}/{totalCount})
+                📝 Categorie da tradurre ({selectedCount}/{totalCount} elementi)
               </h3>
               <div className="flex space-x-2">
                 <button
@@ -410,67 +468,21 @@ export default function TranslationModal({
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-mainblue"></div>
                 <p className="text-sm text-gray-600 mt-2">Caricamento contenuti...</p>
               </div>
-            ) : translationItems.length === 0 ? (
+            ) : categories.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>Nessun contenuto disponibile per la traduzione.</p>
                 <p className="text-sm mt-2">Aggiungi descrizioni e contenuti prima di tradurre.</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-80 overflow-y-auto border border-gray-200 rounded-md p-3">
-                {/* Menu Section */}
-                {menuItems.length > 0 && (
-                  <TranslationGroup
-                    title="Menu"
-                    icon="📋"
-                    items={menuItems}
-                    onToggle={toggleItem}
+              <div className="space-y-3 border border-gray-200 rounded-md p-4">
+                {categories.map((category) => (
+                  <CategoryCheckbox
+                    key={category.type}
+                    category={category}
+                    onToggle={toggleCategory}
                     disabled={isTranslating}
                   />
-                )}
-
-                {/* Sections */}
-                {sectionTranslationItems.length > 0 && (
-                  <TranslationGroup
-                    title="Sezioni"
-                    icon="📑"
-                    items={sectionTranslationItems}
-                    onToggle={toggleItem}
-                    disabled={isTranslating}
-                  />
-                )}
-
-                {/* Items */}
-                {itemItems.length > 0 && (
-                  <TranslationGroup
-                    title="Piatti"
-                    icon="🍽️"
-                    items={itemItems}
-                    onToggle={toggleItem}
-                    disabled={isTranslating}
-                  />
-                )}
-
-                {/* Ingredients */}
-                {ingredientItems.length > 0 && (
-                  <TranslationGroup
-                    title="Ingredienti"
-                    icon="🥬"
-                    items={ingredientItems}
-                    onToggle={toggleItem}
-                    disabled={isTranslating}
-                  />
-                )}
-
-                {/* Allergens */}
-                {allergenItems.length > 0 && (
-                  <TranslationGroup
-                    title="Allergeni"
-                    icon="⚠️"
-                    items={allergenItems}
-                    onToggle={toggleItem}
-                    disabled={isTranslating}
-                  />
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -536,79 +548,54 @@ export default function TranslationModal({
   )
 }
 
-// Componente helper per gruppi
-function TranslationGroup({
-  title,
-  icon,
-  items,
+// Componente per la checkbox di categoria
+function CategoryCheckbox({
+  category,
   onToggle,
   disabled
 }: {
-  title: string
-  icon: string
-  items: TranslationItem[]
-  onToggle: (id: string) => void
-  disabled: boolean
-}) {
-  return (
-    <div>
-      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
-        <span className="mr-1">{icon}</span>
-        {title} ({items.length})
-      </h4>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <TranslationItemRow
-            key={item.id}
-            item={item}
-            onToggle={onToggle}
-            disabled={disabled}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// Componente helper per riga
-function TranslationItemRow({
-  item,
-  onToggle,
-  disabled
-}: {
-  item: TranslationItem
-  onToggle: (id: string) => void
+  category: CategoryGroup
+  onToggle: (type: string) => void
   disabled: boolean
 }) {
   return (
     <label
-      className={`flex items-start p-2 border rounded-md cursor-pointer transition-colors ${
-        item.checked
+      className={`flex items-center justify-between p-4 border rounded-md cursor-pointer transition-colors ${
+        category.checked
           ? 'bg-green-50 border-green-300'
           : 'bg-white border-gray-200 hover:bg-gray-50'
       }`}
     >
-      <input
-        type="checkbox"
-        checked={item.checked}
-        onChange={() => onToggle(item.id)}
-        disabled={disabled}
-        className="w-4 h-4 mt-0.5 text-mainblue border-gray-300 rounded focus:ring-mainblue flex-shrink-0"
-      />
-      <div className="ml-3 flex-1 min-w-0">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-900">
-            {item.label}
-          </span>
-          {item.parentLabel && (
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded truncate max-w-xs">
-              {item.parentLabel}
+      <div className="flex items-center flex-1">
+        <input
+          type="checkbox"
+          checked={category.checked}
+          onChange={() => onToggle(category.type)}
+          disabled={disabled}
+          className="w-5 h-5 text-mainblue border-gray-300 rounded focus:ring-mainblue flex-shrink-0"
+        />
+        <div className="ml-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-xl">{category.icon}</span>
+            <span className="text-sm font-semibold text-gray-900">
+              {category.label}
             </span>
-          )}
+          </div>
+          <p className="text-xs text-gray-600 mt-1">
+            {category.items.length} {category.items.length === 1 ? 'elemento' : 'elementi'}
+          </p>
         </div>
-        <p className="text-xs text-gray-600 mt-1 line-clamp-1">
-          {item.content}
-        </p>
+      </div>
+      
+      {/* Badge con conteggio */}
+      <div className="flex items-center">
+        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+          category.checked 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-gray-100 text-gray-600'
+        }`}>
+          {category.items.length}
+        </span>
       </div>
     </label>
   )
