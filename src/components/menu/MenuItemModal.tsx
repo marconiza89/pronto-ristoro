@@ -370,11 +370,43 @@ export default function MenuItemModal({
       }
 
       // Gestione allergeni
+    if (itemToEdit) {
+        // Ottieni gli allergeni esistenti
+        const { data: existingAllergens } = await supabase
+          .from('item_allergens')
+          .select('allergen_code')
+          .eq('item_id', itemId)
+        
+        if (existingAllergens) {
+          // Rimuovi tutti gli allergeni esistenti
+          for (const allergen of existingAllergens) {
+            await removeAllergenFromItem(itemId, allergen.allergen_code)
+          }
+        }
+      }
+      
+      // Aggiungi i nuovi allergeni selezionati
       for (const code of selectedAllergens) {
         await addAllergenToItem({ item_id: itemId, allergen_code: code })
       }
 
-      // Gestione tag dietetici
+      // Gestione tag dietetici - Prima rimuovi quelli esistenti se stiamo modificando
+      if (itemToEdit) {
+        // Ottieni i tag esistenti
+        const { data: existingTags } = await supabase
+          .from('item_dietary_tags')
+          .select('tag_code')
+          .eq('item_id', itemId)
+        
+        if (existingTags) {
+          // Rimuovi tutti i tag esistenti
+          for (const tag of existingTags) {
+            await removeDietaryTagFromItem(itemId, tag.tag_code)
+          }
+        }
+      }
+      
+      // Aggiungi i nuovi tag selezionati
       for (const code of selectedDietaryTags) {
         await addDietaryTagToItem({ item_id: itemId, tag_code: code })
       }
